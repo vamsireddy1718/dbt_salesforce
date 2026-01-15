@@ -1,3 +1,14 @@
+# dbt_salesforce v2.2.0
+
+[PR #81](https://github.com/fivetran/dbt_salesforce/pull/81) includes the following updates:
+
+## Documentation
+- Updates README with standardized Fivetran formatting.
+
+## Under the Hood
+- In the `quickstart.yml` file:
+  - Adds `supported_vars` for Quickstart UI customization.
+
 # dbt_salesforce v2.1.0
 
 [PR #80](https://github.com/fivetran/dbt_salesforce/pull/80) includes the following updates:
