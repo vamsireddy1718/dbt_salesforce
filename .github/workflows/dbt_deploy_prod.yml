@@ -1,0 +1,98 @@
+name: dbt Deploy — PROD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'models/**'
+      - 'macros/**'
+      - 'tests/**'
+      - 'seeds/**'
+      - 'dbt_project.yml'
+      - 'packages.yml'
+
+  workflow_dispatch:
+    inputs:
+      full_refresh:
+        description: 'Run with --full-refresh?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+env:
+  DBT_PROFILES_DIR: .
+  DBT_SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+  DBT_SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE_PROD }}
+  DBT_SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE_PROD }}
+  DBT_SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE_PROD }}
+  DBT_SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+  DBT_SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+  DBT_SNOWFLAKE_SCHEMA: 'salesforce'
+
+jobs:
+  dbt-deploy-prod:
+    name: dbt deploy (PROD)
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dbt-snowflake
+        run: |
+          pip install --upgrade pip
+          pip install dbt-snowflake==1.8.*
+
+      - name: Generate profiles.yml
+        run: |
+          cat > profiles.yml <<EOF
+          dbt_salesforce:
+            target: prod
+            outputs:
+              prod:
+                type: snowflake
+                account: "{{ env_var('DBT_SNOWFLAKE_ACCOUNT') }}"
+                user: "{{ env_var('DBT_SNOWFLAKE_USER') }}"
+                password: "{{ env_var('DBT_SNOWFLAKE_PASSWORD') }}"
+                role: "{{ env_var('DBT_SNOWFLAKE_ROLE') }}"
+                database: "{{ env_var('DBT_SNOWFLAKE_DATABASE') }}"
+                warehouse: "{{ env_var('DBT_SNOWFLAKE_WAREHOUSE') }}"
+                schema: "{{ env_var('DBT_SNOWFLAKE_SCHEMA') }}"
+                threads: 4
+          EOF
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: dbt seed
+        run: dbt seed --target prod
+
+      - name: dbt run
+        run: |
+          REFRESH_FLAG=""
+          if [ "${{ github.event.inputs.full_refresh }}" = "true" ]; then
+            REFRESH_FLAG="--full-refresh"
+          fi
+          dbt run --target prod $REFRESH_FLAG
+
+      - name: dbt test
+        run: dbt test --target prod
+
+      - name: Upload dbt artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-prod-artifacts-${{ github.sha }}
+          path: |
+            target/manifest.json
+            target/run_results.json
+          retention-days: 30

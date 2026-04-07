@@ -14,6 +14,12 @@ models:
       staging:
         +materialized: table
 
+    # --- ISW CUSTOM MODELS (do not edit above this line) ---
+    custom:
+      +schema: salesforce_custom
+      +materialized: table
+      +tags: ['isw_custom']
+
 vars:
   salesforce:
     account: "{{ source('salesforce', 'account') }}"
@@ -44,6 +50,11 @@ vars:
     salesforce__task_pass_through_columns: []
     salesforce__user_role_pass_through_columns: []
     salesforce__user_pass_through_columns: []
+
+seeds:
+  salesforce:
+    custom:
+      +schema: salesforce_seeds
 
 clean-targets:
 - target
