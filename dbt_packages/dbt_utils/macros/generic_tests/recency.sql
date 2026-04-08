@@ -37,6 +37,5 @@ select
 
 from recency
 where most_recent < {{ threshold }}
-   or most_recent is null
 
 {% endmacro %}
