@@ -7,14 +7,17 @@ require-dbt-version: [">=1.3.0", "<3.0.0"]
 models:
   salesforce:
     +materialized: table
+    +schema: salesforce_analytics
     intermediate:
       +materialized: ephemeral
     salesforce:
       staging:
         +materialized: table
+        +schema: salesforce_staging
     salesforce_history:
       staging:
         +materialized: table
+        +schema: salesforce_history_staging
     # --- ISW CUSTOM MODELS (do not edit above this line) ---
     custom:
       +schema: salesforce_custom
